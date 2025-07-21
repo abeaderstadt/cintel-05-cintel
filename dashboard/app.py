@@ -56,7 +56,7 @@ def reactive_calc_combined():
     return deque_snapshot, df, latest_dictionary_entry
 
 # --------------------------------------------
-# --- layout section ---
+# --- layout and sidebar section ---
 # --------------------------------------------
 
 ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True)
@@ -75,11 +75,11 @@ with ui.sidebar(open="open"):
         href="https://shiny.posit.co/blog/posts/shiny-express/",
         target="_blank",
     )
+    
+# --------------------------------------------
+# --- Value boxes and latest reading section ---
+# --------------------------------------------
 
-# In Shiny Express, everything not in the sidebar is in the main panel
-# --------------------------------------------
-# --- ??? section ---
-# --------------------------------------------
 with ui.layout_columns():
     with ui.value_box(
         showcase=icon_svg("sun"),
@@ -119,6 +119,9 @@ with ui.layout_columns():
             deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
             return f"{latest_dictionary_entry['timestamp']}"
 
+# --------------------------------------------
+# --- DataFrame display section ---
+# --------------------------------------------
 
 #with ui.card(full_screen=True, min_height="40%"):
 with ui.card(full_screen=True):
@@ -128,8 +131,12 @@ with ui.card(full_screen=True):
     def display_df():
         """Get the latest reading and return a dataframe with current readings"""
         deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-        pd.set_option('display.width', None)        # Use maximum width
+        pd.set_option('display.width', None) 
         return render.DataGrid( df,width="100%")
+    
+# --------------------------------------------
+# --- Charts section ---
+# --------------------------------------------
 
 with ui.card():
     ui.card_header("Chart with Current Trend")
