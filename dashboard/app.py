@@ -167,7 +167,8 @@ with ui.card():
                 line=dict(color="#FF5733"),
             ))
 
-            # Trend line
+        # Trend line
+        if len(df) >= 2:
             x_vals = list(range(len(df)))
             slope, intercept, *_ = stats.linregress(x_vals, df["temperature"])
             trend = [slope * x + intercept for x in x_vals]
