@@ -12,6 +12,7 @@ import plotly.express as px
 from shinywidgets import render_plotly
 from scipy import stats
 from faicons import icon_svg 
+import plotly.graph_objs as go
 
 # --------------------------------------------
 # Constants and reactive data setup
@@ -155,32 +156,40 @@ with ui.card():
         if not df.empty:
             # Convert the 'timestamp' column to datetime for better plotting
             df["timestamp"] = pd.to_datetime(df["timestamp"])
-            sequence = range(len(df))
-            x_vals = list(sequence)
-            y_vals = df["temperature"]
 
-            slope, intercept, _, _, _ = stats.linregress(x_vals, y_vals)
-            df['temp_trend'] = [slope * x + intercept for x in x_vals]
+            fig = go.Figure()
+            # Temperature line
+            fig.add_trace(go.Scatter(
+                x=df["timestamp"],
+                y=df["temperature"],
+                mode="lines+markers",
+                name="Temperature",
+                line=dict(color="#FF5733"),
+            ))
 
-            fig = px.line(df,
-                x="timestamp",
-                y="temperature",
-                title="Temperature Over Time (°C)",
-                markers=True,
-                labels={"temperature": "Temperature (°C)", "timestamp": "Time"},
-            )
+            # Trend line
+            x_vals = list(range(len(df)))
+            slope, intercept, *_ = stats.linregress(x_vals, df["temperature"])
+            trend = [slope * x + intercept for x in x_vals]
 
-            fig.add_scatter(
-                x=df["timestamp"], y=df["temp_trend"],
-                mode='lines',
-                name='Temp Trend',
-            )
+            fig.add_trace(go.Scatter(
+                x=df["timestamp"],
+                y=trend,
+                mode="lines",
+                name="Temp Trend",
+                line=dict(color="#900C3F", dash="dash")
+            ))
 
             fig.update_layout(
                 xaxis_title="Time",
                 yaxis_title="Temperature (°C)",
+                plot_bgcolor="#FDFEFE",
+                paper_bgcolor="#FBFCFC",
+                font=dict(color="#1B2631"),
                 title_font=dict(size=20),
-)
+                transition=dict(duration=500)
+            )
+
             return fig
         
 with ui.card():
@@ -193,12 +202,24 @@ with ui.card():
         if not df.empty:
             df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-            fig = px.line(df,
-                          x="timestamp",
-                          y="humidity",
-                          title="Humidity Over Time (%)",
-                          markers=True,
-                          labels={"humidity": "Humidity (%)", "timestamp": "Time"})
+            fig = go.Figure()
 
-            fig.update_layout(xaxis_title="Time", yaxis_title="Humidity (%)")
+            fig.add_trace(go.Scatter(
+                x=df["timestamp"],
+                y=df["humidity"],
+                mode="lines+markers",
+                name="Humidity",
+                line=dict(color="#3498DB"),
+            ))
+
+            fig.update_layout(
+                xaxis_title="Time",
+                yaxis_title="Humidity (%)",
+                plot_bgcolor="#EBF5FB",
+                paper_bgcolor="#EAF2F8",
+                font=dict(color="#154360"),
+                title_font=dict(size=20),
+                transition=dict(duration=500) 
+            )
+
             return fig
