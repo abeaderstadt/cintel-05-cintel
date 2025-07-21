@@ -59,7 +59,7 @@ def reactive_calc_combined():
 # --- layout and sidebar section ---
 # --------------------------------------------
 
-ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True, theme="minty",)
+ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True)
 # Sidebar is typically used for user interaction/information
 with ui.sidebar(open="open"):
     ui.h2("Polar Monitoring Lab ❄️", class_="text-center")
@@ -110,14 +110,19 @@ with ui.layout_columns():
 
         "Real-time Antarctic Humidity"
 
-    with ui.card(full_screen=True):
-        ui.card_header("Current Date and Time")
+    with ui.value_box(
+        showcase=icon_svg("clock"),
+        theme="bg-gradient-purple-indigo",
+    ):
+        "Current Time"
 
         @render.text
         def display_time():
             """Get the latest reading and return a timestamp string"""
             deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
             return f"{latest_dictionary_entry['timestamp']}"
+
+    "Real-time Antarctic Timestamp"
 
 # --------------------------------------------
 # --- DataFrame display section ---
