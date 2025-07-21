@@ -49,8 +49,11 @@ def reactive_calc_combined():
     # For Display: Convert deque to DataFrame for display
     df = pd.DataFrame(deque_snapshot)
 
+    # For Display: Get the latest dictionary entry
+    latest_dictionary_entry = new_dictionary_entry
+
     # Return a tuple with everything we need
-    return deque_snapshot, df, new_dictionary_entry
+    return deque_snapshot, df, latest_dictionary_entry
 
 # --------------------------------------------
 # --- layout section ---
@@ -75,47 +78,15 @@ with ui.sidebar(open="open"):
 
 # In Shiny Express, everything not in the sidebar is in the main panel
 # --------------------------------------------
-# --- charts section ---
+# --- ??? section ---
 # --------------------------------------------
-@render.plotly
-def plot_temp_chart():
-    """Line chart showing temperature over time with trend"""
-    deque_snapshot, df, _ = reactive_calc_combined()
-    fig = px.line(df, x="timestamp", y="temperature", title="Temperature Over Time (°C)", markers=True)
-
-    # Add linear regression line
-    x_vals = list(range(len(df)))
-    y_vals = df["temperature"]
-    slope, intercept, _, _, _ = stats.linregress(x_vals, y_vals)
-    df["temp_trend"] = [slope * x + intercept for x in x_vals]
-
-    fig.add_scatter(x=df["timestamp"], y=df["temp_trend"], mode="lines", name="Temp Trend")
-    fig.update_layout(xaxis_title="Time", yaxis_title="Value (%) or °C")
-
-    return fig
-
-@render.plotly
-def plot_humidity_chart():
-    """Line chart showing humidity over time"""
-    deque_snapshot, df, _ = reactive_calc_combined()
-    fig = px.line(df, x="timestamp", y="humidity", title="Humidity Over Time (%)", markers=True)
-    return fig
-
-# --------------------------------------------
-# --- main content layout ---
-# --------------------------------------------
-
-with ui.layout_columns(col_widths=[6, 6]):
-    with ui.card():
-        "Temperature Over Time"
-        plot_temp_chart()
-
-    with ui.card():
-        "Humidity Over Time"
-        plot_humidity_chart()
+with ui.layout_columns():
+    with ui.value_box(
+        showcase=icon_svg("sun"),
+        theme="bg-gradient-blue-purple",
+    ):
         "Current Temperature"
 
- # --- value box: temperature ---
         @render.text
         def display_temp():
             """Get the latest reading and return a temperature string"""
@@ -124,22 +95,21 @@ with ui.layout_columns(col_widths=[6, 6]):
 
         "Real-time Antarctic Temperature"
 
-# --- value box: humidity ---
+
     with ui.value_box(
         showcase=icon_svg("droplet"),
         theme="bg-gradient-cyan-blue",
     ):
         "Current Humidity"
-
+    
         @render.text
         def display_humidity():
             """Get the latest reading and return a humidity string"""
             deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
             return f"{latest_dictionary_entry['humidity']} %"
-        
+
         "Real-time Antarctic Humidity"
 
-# --- value box: time ---
     with ui.card(full_screen=True):
         ui.card_header("Current Date and Time")
 
@@ -149,9 +119,6 @@ with ui.layout_columns(col_widths=[6, 6]):
             deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
             return f"{latest_dictionary_entry['timestamp']}"
 
-# --------------------------------------------
-# --- dataframe section ---
-# --------------------------------------------
 
 #with ui.card(full_screen=True, min_height="40%"):
 with ui.card(full_screen=True):
@@ -163,3 +130,48 @@ with ui.card(full_screen=True):
         deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
         pd.set_option('display.width', None)        # Use maximum width
         return render.DataGrid( df,width="100%")
+
+with ui.card():
+    ui.card_header("Chart with Current Trend")
+
+    @render_plotly
+    def display_plot():
+        # Fetch from the reactive calc function
+        deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+
+        # Ensure the DataFrame is not empty before plotting
+        if not df.empty:
+            # Convert the 'timestamp' column to datetime for better plotting
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+            # Create scatter plot for readings
+            # pass in the df, the name of the x column, the name of the y column,
+            # and more
+
+            fig = px.line(df,
+            x="timestamp",
+            y=["temperature", "humidity"],
+            title="Temperature and Humidity Over Time",
+            labels={"value": "Reading", "timestamp": "Time", "variable": "Metric"},
+            markers=True)
+
+            # Linear regression - we need to get a list of the
+            # Independent variable x values (time) and the
+            # Dependent variable y values (temp)
+            # then, it's pretty easy using scipy.stats.linregress()
+
+            # For x let's generate a sequence of integers from 0 to len(df)
+            sequence = range(len(df))
+            x_vals = list(sequence)
+            y_vals = df["temperature"]
+
+            slope, intercept, r_value, p_value, std_err = stats.linregress(x_vals, y_vals)
+            df['temp_trend'] = [slope * x + intercept for x in x_vals]
+
+            # Add the regression line to the figure
+            fig.add_scatter(x=df["timestamp"], y=df['temp_trend'], mode='lines', name='Temp Trend')
+
+            # Update layout as needed to customize further
+            fig.update_layout(xaxis_title="Time",yaxis_title="Value (%) or °C")
+
+        return fig
