@@ -75,7 +75,7 @@ with ui.sidebar(open="open"):
         href="https://shiny.posit.co/blog/posts/shiny-express/",
         target="_blank",
     )
-    
+
 # --------------------------------------------
 # --- Value boxes and latest reading section ---
 # --------------------------------------------
@@ -139,10 +139,10 @@ with ui.card(full_screen=True):
 # --------------------------------------------
 
 with ui.card():
-    ui.card_header("Chart with Current Trend")
+    ui.card_header("Temperature Over Time")
 
     @render_plotly
-    def display_plot():
+    def display_temp_plot():
         # Fetch from the reactive calc function
         deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
 
@@ -150,35 +150,40 @@ with ui.card():
         if not df.empty:
             # Convert the 'timestamp' column to datetime for better plotting
             df["timestamp"] = pd.to_datetime(df["timestamp"])
-
-            # Create scatter plot for readings
-            # pass in the df, the name of the x column, the name of the y column,
-            # and more
-
-            fig = px.line(df,
-            x="timestamp",
-            y=["temperature", "humidity"],
-            title="Temperature and Humidity Over Time",
-            labels={"value": "Reading", "timestamp": "Time", "variable": "Metric"},
-            markers=True)
-
-            # Linear regression - we need to get a list of the
-            # Independent variable x values (time) and the
-            # Dependent variable y values (temp)
-            # then, it's pretty easy using scipy.stats.linregress()
-
-            # For x let's generate a sequence of integers from 0 to len(df)
             sequence = range(len(df))
             x_vals = list(sequence)
             y_vals = df["temperature"]
 
-            slope, intercept, r_value, p_value, std_err = stats.linregress(x_vals, y_vals)
+            slope, intercept, _, _, _ = stats.linregress(x_vals, y_vals)
             df['temp_trend'] = [slope * x + intercept for x in x_vals]
 
-            # Add the regression line to the figure
-            fig.add_scatter(x=df["timestamp"], y=df['temp_trend'], mode='lines', name='Temp Trend')
+            fig = px.line(df,
+                          x="timestamp",
+                          y="temperature",
+                          title="Temperature Over Time (°C)",
+                          markers=True,
+                          labels={"temperature": "Temperature (°C)", "timestamp": "Time"})
 
-            # Update layout as needed to customize further
-            fig.update_layout(xaxis_title="Time",yaxis_title="Value (%) or °C")
+            fig.add_scatter(x=df["timestamp"], y=df["temp_trend"], mode='lines', name='Temp Trend')
+            fig.update_layout(xaxis_title="Time", yaxis_title="Temperature (°C)")
+            return fig
+        
+with ui.card():
+    ui.card_header("Humidity Over Time")
 
-        return fig
+    @render_plotly
+    def display_humidity_plot():
+        deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+
+        if not df.empty:
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+            fig = px.line(df,
+                          x="timestamp",
+                          y="humidity",
+                          title="Humidity Over Time (%)",
+                          markers=True,
+                          labels={"humidity": "Humidity (%)", "timestamp": "Time"})
+
+            fig.update_layout(xaxis_title="Time", yaxis_title="Humidity (%)")
+            return fig
