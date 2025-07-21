@@ -15,31 +15,16 @@ import pandas as pd
 import plotly.express as px
 from shinywidgets import render_plotly
 from scipy import stats
-
-# --------------------------------------------
-# Import icons as you like
-# --------------------------------------------
-
-# https://fontawesome.com/v4/cheatsheet/
 from faicons import icon_svg
 
 # --------------------------------------------
-# Shiny EXPRESS VERSION
-# --------------------------------------------
-
-# --------------------------------------------
 # First, set a constant UPDATE INTERVAL for all live data
-# Constants are usually defined in uppercase letters
-# Use a type hint to make it clear that it's an integer (: int)
 # --------------------------------------------
 
 UPDATE_INTERVAL_SECS: int = 3
 
 # --------------------------------------------
 # Initialize a REACTIVE VALUE with a common data structure
-# The reactive value is used to store state (information)
-# Used by all the display components that show this live data.
-# This reactive value is a wrapper around a DEQUE of readings
 # --------------------------------------------
 
 DEQUE_SIZE: int = 5
@@ -47,13 +32,7 @@ reactive_value_wrapper = reactive.value(deque(maxlen=DEQUE_SIZE))
 
 # --------------------------------------------
 # Initialize a REACTIVE CALC that all display components can call
-# to get the latest data and display it.
-# The calculation is invalidated every UPDATE_INTERVAL_SECS
-# to trigger updates.
-# It returns a tuple with everything needed to display the data.
-# Very easy to expand or modify.
 # --------------------------------------------
-
 
 @reactive.calc()
 def reactive_calc_combined():
@@ -83,21 +62,12 @@ def reactive_calc_combined():
     latest_dictionary_entry = new_dictionary_entry
 
     # Return a tuple with everything we need
-    # Every time we call this function, we'll get all these values
     return deque_snapshot, df, latest_dictionary_entry
 
 
-
-
 # Define the Shiny UI Page layout
-# Call the ui.page_opts() function
-# Set title to a string in quotes that will appear at the top
-# Set fillable to True to use the whole page width for the UI
 ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True)
 
-# Sidebar is typically used for user interaction/information
-# Note the with statement to create the sidebar followed by a colon
-# Everything in the sidebar is indented consistently
 with ui.sidebar(open="open"):
 
     ui.h2("Polar Monitoring Lab ❄️", class_="text-center")
@@ -127,99 +97,92 @@ with ui.sidebar(open="open"):
 
 # In Shiny Express, everything not in the sidebar is in the main panel
 
+# ---------------------- Render Functions ----------------------
 
-with ui.layout_columns():
-    with ui.value_box(
-        showcase=icon_svg("sun"),
-        theme="bg-gradient-blue-purple",
-    ):
-        "Current Temperature"
+@render.plotly
+def plot_temp_chart():
+    deque_snapshot, df, _ = reactive_calc_combined()
+    fig = px.line(df, x="timestamp", y="temperature", title="Temperature Over Time (\u00b0C)", markers=True)
+    x_vals = list(range(len(df)))
+    slope, intercept, _, _, _ = stats.linregress(x_vals, df["temperature"])
+    df["temp_trend"] = [slope * x + intercept for x in x_vals]
+    fig.add_scatter(x=df["timestamp"], y=df["temp_trend"], mode='lines', name='Trend')
+    return fig
 
-        @render.text
-        def display_temp():
-            """Get the latest reading and return a temperature string"""
-            deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-            return f"{latest_dictionary_entry['temperature']} C"
+@render.plotly
+def plot_humidity_chart():
+    deque_snapshot, df, _ = reactive_calc_combined()
+    fig = px.line(df, x="timestamp", y="humidity", title="Humidity Over Time (%)", markers=True)
+    return fig
 
-        "Real-time Antarctic Temperature"
+@render.text
+def display_temp():
+    _, _, latest = reactive_calc_combined()
+    return f"{latest['temperature']} \u00b0C"
 
+@render.text
+def display_humidity():
+    _, _, latest = reactive_calc_combined()
+    return f"{latest['humidity']} %"
 
-    with ui.value_box(
-        showcase=icon_svg("droplet"),
-        theme="bg-gradient-cyan-blue",
-    ):
-        "Current Humidity"
+@render.text
+def display_time():
+    _, _, latest = reactive_calc_combined()
+    return f"{latest['timestamp']}"
 
-        @render.text
-        def display_humidity():
-            """Get the latest reading and return a humidity string"""
-            deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-            return f"{latest_dictionary_entry['humidity']} %"
-        
-        "Real-time Antarctic Humidity"
+@render.data_frame
+def display_df():
+    _, df, _ = reactive_calc_combined()
+    pd.set_option('display.width', None)
+    return render.DataGrid(df, width="100%")
 
-    with ui.card(full_screen=True):
-        ui.card_header("Current Date and Time")
+# ---------------------- UI Layout ----------------------
 
-        @render.text
-        def display_time():
-            """Get the latest reading and return a timestamp string"""
-            deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-            return f"{latest_dictionary_entry['timestamp']}"
+app_ui = ui.page_fluid(
+    ui.h2("Live Antarctic Lab Readings"),
 
+    ui.layout_columns(
+        ui.card(
+            ui.card_header("Temperature Over Time"),
+            plot_temp_chart()
+        ),
+        ui.card(
+            ui.card_header("Humidity Over Time"),
+            plot_humidity_chart()
+        ),
+        col_widths=[6, 6]
+    ),
 
-#with ui.card(full_screen=True, min_height="40%"):
-with ui.card(full_screen=True):
-    ui.card_header("Most Recent Readings")
+    ui.layout_columns(
+        ui.value_box(
+            "Current Temperature",
+            display_temp(),
+            "Real-time Antarctic Temperature",
+            showcase=icon_svg("sun"),
+            theme="bg-gradient-blue-purple"
+        ),
+        ui.value_box(
+            "Current Humidity",
+            display_humidity(),
+            "Real-time Antarctic Humidity",
+            showcase=icon_svg("droplet"),
+            theme="bg-gradient-cyan-blue"
+        )
+    ),
 
-    @render.data_frame
-    def display_df():
-        """Get the latest reading and return a dataframe with current readings"""
-        deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-        pd.set_option('display.width', None)        # Use maximum width
-        return render.DataGrid( df,width="100%")
+    ui.card(
+        ui.card_header("Current Date and Time"),
+        display_time(),
+        full_screen=True
+    ),
 
-with ui.card():
-    ui.card_header("Chart with Current Trend")
+    ui.card(
+        ui.card_header("Most Recent Readings"),
+        display_df(),
+        full_screen=True
+    )
+)
 
-    @render_plotly
-    def display_plot():
-        # Fetch from the reactive calc function
-        deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+# ---------------------- Run App ----------------------
 
-        # Ensure the DataFrame is not empty before plotting
-        if not df.empty:
-            # Convert the 'timestamp' column to datetime for better plotting
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
-
-            # Create scatter plot for readings
-            # pass in the df, the name of the x column, the name of the y column,
-            # and more
-        
-            fig = px.line(df,
-            x="timestamp",
-            y=["temperature", "humidity"],
-            title="Temperature and Humidity Over Time",
-            labels={"value": "Reading", "timestamp": "Time", "variable": "Metric"},
-            markers=True)
-            
-            # Linear regression - we need to get a list of the
-            # Independent variable x values (time) and the
-            # Dependent variable y values (temp)
-            # then, it's pretty easy using scipy.stats.linregress()
-
-            # For x let's generate a sequence of integers from 0 to len(df)
-            sequence = range(len(df))
-            x_vals = list(sequence)
-            y_vals = df["temperature"]
-
-            slope, intercept, r_value, p_value, std_err = stats.linregress(x_vals, y_vals)
-            df['temp_trend'] = [slope * x + intercept for x in x_vals]
-
-            # Add the regression line to the figure
-            fig.add_scatter(x=df["timestamp"], y=df['temp_trend'], mode='lines', name='Temp Trend')
-
-            # Update layout as needed to customize further
-            fig.update_layout(xaxis_title="Time",yaxis_title="Value (%) or °C")
-
-        return fig
+app = App(app_ui, server=None)
