@@ -59,7 +59,7 @@ def reactive_calc_combined():
 # --- layout and sidebar section ---
 # --------------------------------------------
 
-ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True)
+ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True, theme="minty",)
 # Sidebar is typically used for user interaction/information
 with ui.sidebar(open="open"):
     ui.h2("Polar Monitoring Lab ❄️", class_="text-center")
@@ -157,15 +157,32 @@ with ui.card():
             slope, intercept, _, _, _ = stats.linregress(x_vals, y_vals)
             df['temp_trend'] = [slope * x + intercept for x in x_vals]
 
-            fig = px.line(df,
-                          x="timestamp",
-                          y="temperature",
-                          title="Temperature Over Time (°C)",
-                          markers=True,
-                          labels={"temperature": "Temperature (°C)", "timestamp": "Time"})
+            fig = px.line(
+                df,
+                x="timestamp",
+                y="temperature",
+                title="Temperature Over Time (°C)",
+                markers=True,
+                labels={"temperature": "Temperature (°C)", "timestamp": "Time"},
+                line_shape="spline",
+                color_discrete_sequence=["#FF5733"],
+            )
 
-            fig.add_scatter(x=df["timestamp"], y=df["temp_trend"], mode='lines', name='Temp Trend')
-            fig.update_layout(xaxis_title="Time", yaxis_title="Temperature (°C)")
+            fig.add_scatter(
+                x=df["timestamp"], y=df["temp_trend"],
+                mode='lines',
+                name='Temp Trend',
+                line=dict(color="#900C3F", dash="dash")
+            
+            )
+            fig.update_layout(
+                xaxis_title="Time",
+                yaxis_title="Temperature (°C)",
+                plot_bgcolor="#FDFEFE",
+                paper_bgcolor="#FBFCFC",
+                font=dict(color="#1B2631"),
+                title_font=dict(size=20),
+)
             return fig
         
 with ui.card():
