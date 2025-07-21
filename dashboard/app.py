@@ -145,7 +145,7 @@ with ui.layout_columns():
 
 
     with ui.value_box(
-        showcase=icon_svg("tint"),
+        showcase=icon_svg("droplet"),
         theme="bg-gradient-cyan-blue",
     ):
         "Current Humidity"
