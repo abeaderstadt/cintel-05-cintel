@@ -18,7 +18,7 @@ import plotly.graph_objs as go
 # Constants and reactive data setup
 # --------------------------------------------
 
-UPDATE_INTERVAL_SECS: int = 3
+UPDATE_INTERVAL_SECS: int = 5
 DEQUE_SIZE: int = 5
 reactive_value_wrapper = reactive.value(deque(maxlen=DEQUE_SIZE))
 
