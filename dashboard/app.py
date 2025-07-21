@@ -108,15 +108,16 @@ with ui.sidebar(open="open"):
     ui.hr()
     ui.h6("Links:")
     ui.a(
-        "GitHub Source",
-        href="https://github.com/denisecase/cintel-05-cintel",
-        target="_blank",
-    )
-    ui.a(
-        "GitHub App",
-        href="https://denisecase.github.io/cintel-05-cintel/",
-        target="_blank",
-    )
+    "GitHub Source",
+    href="https://github.com/abeaderstadt/cintel-05-cintel",
+    target="_blank",
+)
+# update or uncomment this once I host my app:
+# ui.a(
+#     "GitHub App",
+#     href="https://abeaderstadt.github.io/cintel-05-cintel/",
+#     target="_blank",
+# )
     ui.a("PyShiny", href="https://shiny.posit.co/py/", target="_blank")
     ui.a(
         "PyShiny Express",
@@ -126,38 +127,36 @@ with ui.sidebar(open="open"):
 
 # In Shiny Express, everything not in the sidebar is in the main panel
 
-@render.text
-def display_temp():
-    """Get the latest reading and return a temperature string"""
-    deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-    return f"{latest_dictionary_entry['temperature']} C"
-
-    "warmer than usual"
-
-@render.text
-def display_humidity():
-    """Get the latest reading and return a humidity string"""
-    deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-    return f"{latest_dictionary_entry['humidity']} %"
 
 with ui.layout_columns():
     with ui.value_box(
         showcase=icon_svg("sun"),
         theme="bg-gradient-blue-purple",
     ):
-
         "Current Temperature"
-        display_temp()
+
+        @render.text
+        def display_temp():
+            """Get the latest reading and return a temperature string"""
+            deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+            return f"{latest_dictionary_entry['temperature']} C"
+
         "Real-time Antarctic Temperature"
+
 
     with ui.value_box(
         showcase=icon_svg("tint"),
         theme="bg-gradient-cyan-blue",
     ):
         "Current Humidity"
-        display_humidity()
-        "Real-time Antarctic Humidity"
 
+        @render.text
+        def display_humidity():
+            """Get the latest reading and return a humidity string"""
+            deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+            return f"{latest_dictionary_entry['humidity']} %"
+        
+        "Real-time Antarctic Humidity"
 
     with ui.card(full_screen=True):
         ui.card_header("Current Date and Time")
