@@ -61,9 +61,14 @@ def reactive_calc_combined():
     reactive.invalidate_later(UPDATE_INTERVAL_SECS)
 
     # Data generation logic
-    temp = round(random.uniform(-18, -16), 1)
+    temperature = round(random.uniform(-18, -16), 1)
+    humidity = round(random.uniform(60, 100), 1) 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_dictionary_entry = {"temp":temp, "timestamp":timestamp}
+    new_dictionary_entry = {
+        "temperature": temperature,
+        "humidity": humidity,
+        "timestamp": timestamp
+    }
 
     # get the deque and append the new entry
     reactive_value_wrapper.get().append(new_dictionary_entry)
@@ -88,16 +93,16 @@ def reactive_calc_combined():
 # Call the ui.page_opts() function
 # Set title to a string in quotes that will appear at the top
 # Set fillable to True to use the whole page width for the UI
-ui.page_opts(title="PyShiny Express: Live Data Example", fillable=True)
+ui.page_opts(title="Antarctic Lab: Temp + Humidity Dashboard", fillable=True)
 
 # Sidebar is typically used for user interaction/information
 # Note the with statement to create the sidebar followed by a colon
 # Everything in the sidebar is indented consistently
 with ui.sidebar(open="open"):
 
-    ui.h2("Antarctic Explorer", class_="text-center")
+    ui.h2("Polar Monitoring Lab ❄️", class_="text-center")
     ui.p(
-        "A demonstration of real-time temperature readings in Antarctica.",
+        "A demonstration of Real-time Antarctic climate conditions.",
         class_="text-center",
     )
     ui.hr()
@@ -115,11 +120,25 @@ with ui.sidebar(open="open"):
     ui.a("PyShiny", href="https://shiny.posit.co/py/", target="_blank")
     ui.a(
         "PyShiny Express",
-        href="hhttps://shiny.posit.co/blog/posts/shiny-express/",
+        href="https://shiny.posit.co/blog/posts/shiny-express/",
         target="_blank",
     )
 
 # In Shiny Express, everything not in the sidebar is in the main panel
+
+@render.text
+def display_temp():
+    """Get the latest reading and return a temperature string"""
+    deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+    return f"{latest_dictionary_entry['temperature']} C"
+
+    "warmer than usual"
+
+@render.text
+def display_humidity():
+    """Get the latest reading and return a humidity string"""
+    deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
+    return f"{latest_dictionary_entry['humidity']} %"
 
 with ui.layout_columns():
     with ui.value_box(
@@ -128,16 +147,17 @@ with ui.layout_columns():
     ):
 
         "Current Temperature"
+        display_temp()
+        "Real-time Antarctic Temperature"
 
-        @render.text
-        def display_temp():
-            """Get the latest reading and return a temperature string"""
-            deque_snapshot, df, latest_dictionary_entry = reactive_calc_combined()
-            return f"{latest_dictionary_entry['temp']} C"
+    with ui.value_box(
+        showcase=icon_svg("tint"),
+        theme="bg-gradient-cyan-blue",
+    ):
+        "Current Humidity"
+        display_humidity()
+        "Real-time Antarctic Humidity"
 
-        "warmer than usual"
-
-  
 
     with ui.card(full_screen=True):
         ui.card_header("Current Date and Time")
@@ -177,12 +197,12 @@ with ui.card():
             # pass in the df, the name of the x column, the name of the y column,
             # and more
         
-            fig = px.scatter(df,
+            fig = px.line(df,
             x="timestamp",
-            y="temp",
-            title="Temperature Readings with Regression Line",
-            labels={"temp": "Temperature (°C)", "timestamp": "Time"},
-            color_discrete_sequence=["blue"] )
+            y=["temperature", "humidity"],
+            title="Temperature and Humidity Over Time",
+            labels={"value": "Reading", "timestamp": "Time", "variable": "Metric"},
+            markers=True)
             
             # Linear regression - we need to get a list of the
             # Independent variable x values (time) and the
@@ -192,15 +212,15 @@ with ui.card():
             # For x let's generate a sequence of integers from 0 to len(df)
             sequence = range(len(df))
             x_vals = list(sequence)
-            y_vals = df["temp"]
+            y_vals = df["temperature"]
 
             slope, intercept, r_value, p_value, std_err = stats.linregress(x_vals, y_vals)
-            df['best_fit_line'] = [slope * x + intercept for x in x_vals]
+            df['temp_trend'] = [slope * x + intercept for x in x_vals]
 
             # Add the regression line to the figure
-            fig.add_scatter(x=df["timestamp"], y=df['best_fit_line'], mode='lines', name='Regression Line')
+            fig.add_scatter(x=df["timestamp"], y=df['temp_trend'], mode='lines', name='Temp Trend')
 
             # Update layout as needed to customize further
-            fig.update_layout(xaxis_title="Time",yaxis_title="Temperature (°C)")
+            fig.update_layout(xaxis_title="Time",yaxis_title="Value (%) or °C")
 
         return fig
